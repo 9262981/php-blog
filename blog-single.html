@@ -1,0 +1,860 @@
+<?php
+/**
+ * @version         2015-10-23 PPPFCMSv1.0.0
+ * @author           apple森马
+ * @copyright      Copyright (c) 2015 - 2020, PPPF.
+ * @homepage    http://www.pppftaobao.com
+ */
+	session_start();
+	define ('pppf',true);//外部调用定义	pppf
+	require dirname(__FILE__).'/includes/common.inc.php';/* 转换为硬路径，速度更快一些 */
+	define('SCRIPT','article');//css选择
+	//处理回帖
+		
+
+	if(@$_GET['action']=='rearticle'){
+		_check_code($_POST['code'],$_SESSION['code']);
+		if($_rows=_fetch_array("
+		SELECT user_uniqid 
+		FROM pppf_user 
+		WHERE user_username='{$_COOKIE['username']}' 
+		LIMIT 1
+		")){
+		_uniqid($_rows['user_uniqid'],$_COOKIE['uniqid']);
+		_timed(time(),@$_COOKIE['re_time'],$_system['re']);
+		//接收数据
+		$_clean=array();
+		$_clean['reid']=$_POST['reid'];
+		$_clean['type']=$_POST['type'];
+		$_clean['title']=$_POST['title'];
+		$_clean['content']=$_POST['content'];
+		$_clean['username']=$_COOKIE['username'];
+		$_clean=_mysql_string($_clean);
+		//写入数据库
+		_query("INSERT INTO pppf_article 
+					(
+					article_reid,
+					article_username,
+					article_title,
+					article_type,
+					article_content,
+					article_date
+					)
+					VALUES
+					(
+					'{$_clean['reid']}',
+					'{$_clean['username']}',
+					'{$_clean['title']}',
+					'{$_clean['type']}',
+					'{$_clean['content']}',
+					NOW()
+					)
+			   ");
+			   if(_affected_rows()==1){
+					_query("
+							UPDATE	pppf_article 
+							SET		article_commendcount=article_commendcount+1
+							WHERE	article_reid=0 
+							AND 	article_id='{$_clean['reid']}'
+					");
+					setcookie('re_time',time());
+					_close();
+					//_session_destroy();
+					_location('回帖成功！','article.php?id='.$_clean['reid']);
+					}else{
+					_alert_back('回帖不成功');
+					} ;
+		}else{
+			_alert_back('非法登陆！');
+		}
+	}
+	//读出数据
+	if(isset($_GET['id'])){
+		if(!!$_rows=_fetch_array
+		("	SELECT	*
+			FROM	pppf_article
+			WHERE	article_reid=0 AND article_id='{$_GET['id']}'")){
+				//累计阅读量
+				_query("UPDATE pppf_article 
+						SET article_readcount=article_readcount+1 
+						WHERE article_id='{$_GET['id']}'");
+				$_html=array();
+				$_html['reid']=$_rows['article_id'];
+				$_html['username']=$_rows['article_username'];
+				$_html['type']=$_rows['article_type'];
+				$_html['title']=$_rows['article_title'];
+				$_html['content']=$_rows['article_content'];
+				$_html['readcount']=$_rows['article_readcount'];
+				$_html['commendcount']=$_rows['article_commendcount'];
+				$_html['last_modify_date']=$_rows['article_last_modify_date'];
+				$_html['date']=$_rows['article_date'];
+				//创建一个全局变量，做一个待参的分页
+				global $_id;
+				$_id='id='.$_html['reid'].'&';
+		//拿出用户信息
+		if(!!$_rows=_fetch_array
+		("	SELECT	*
+			FROM	pppf_user
+			WHERE	user_username='{$_html['username']}'
+			")){
+				$_html['username']=$_rows['user_username'];
+				$_html['userid']=$_rows['user_id'];
+				$_html['face']=$_rows['user_face'];
+				$_html['email']=$_rows['user_email'];
+				$_html['sex']=$_rows['user_sex'];	
+				$_html['url']=$_rows['user_url'];	
+				$_html['switch']=$_rows['user_switch'];
+				$_html['autograph']=$_rows['user_autograph'];
+				
+				
+				if($_html['switch']==1){
+					$_html['html_autograph']=$_html['autograph'].'-'.$_html['username'];
+				}elseif($_html['switch']==0){
+					$_html['html_autograph']='';
+				}
+				//主题帖子修改
+				if($_html['username']==@$_COOKIE['username']){
+					$_html['subject_modify']='<a href="article_modify.php?id='.$_html['reid'].'">[修改]</a>';
+					
+				}
+				//读取最后修改信息
+				if($_html['last_modify_date']!='0000-00-00 00:00:00'){
+					$_html['last_modify_date_string']='<br>本帖已由【'.$_html['username'].'】于'.$_html['last_modify_date'].'修改';
+				}
+				//给楼主回复
+			if (@$_COOKIE['username']) {
+				$_html['re'] = '<span>[<a href="#ree" name="re" title="回复1楼的'.$_html['username'].'">回复</a>]</span>';
+			}
+				//读取回帖
+				global $_pagesize,$_pagenum,$_page;
+				_page("
+						SELECT article_id 
+						FROM pppf_article 
+						WHERE article_reid='{$_html['reid']}'
+					  ",10);
+						$_result= _query
+						("
+						SELECT article_username,article_type,article_content,article_date,article_title
+						FROM pppf_article 
+						WHERE article_reid='{$_html['reid']}'
+						ORDER BY article_date ASC 
+						LIMIT $_pagenum,$_pagesize
+						");
+				
+			}else{
+				_alert_back('不存在此用户');
+			}
+										
+			}else{
+				_alert_back('不存在此文章');
+			}
+		}else{
+		_alert_back('非法操作');
+	}
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Meta, title, CSS, favicons, etc. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Startup Responsive Landing page Template for startup, web services, newsletter signup, lead generation etc..">
+<title>Startupkit Responsive Landing page Template</title>
+
+<!-- Bootstrap core CSS -->
+<link href="css/bootstrap.css" rel="stylesheet">
+
+<!-- Startup CSS -->
+<link href="css/startup.css" rel="stylesheet">
+
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+  <script src="js/html5shiv.js"></script>
+  <script src="js/respond.min.js"></script>
+<![endif]-->
+
+<!-- Favicons -->
+<link rel="shortcut icon" href="images/favicon.png">
+<script src="js/pace.js"></script>
+<script type="text/javascript" src="assets/js/article.js"></script>
+<script type="text/javascript" src="assets/js/code.js"></script>
+</head>
+<body>
+<div class="preloader"></div>
+
+ <!-- Fixed navbar -->
+	<?php
+	require ROOT_PATH."/includes/header.inc.php";
+	?>
+<!--// Navbar Ends--> 
+
+<!--SUBPAGE HEAD-->
+
+<div class="subpage-head">
+  <div class="container">
+    <div class="section-title">
+      <h2>Sample blog post title</h2>
+      <h4>on 17th Oct 2014 by <a href="#">Vincent John</a></h4>
+    </div>
+  </div>
+</div>
+
+<!-- // END SUBPAGE HEAD -->
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-9 has-margin-bottom">
+      <article class="blog-content">
+       <p>
+				这里写你的初始化内容士大夫似的<img width="530" height="340" src="http://api.map.baidu.com/staticimage?center=116.404,39.915&zoom=10&width=530&height=340&markers=116.449993,39.932707"/></p><p><img src="/upload/image/20160312/1457744585966278.jpg" title="1457744585966278.jpg" alt="5bafa40f4bfbfbed282273dc78f0f736afc31f1d.jpg"/></p><pre class="brush:html;toolbar:false">
+&lt;!DOCTYPE&nbsp;html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;meta&nbsp;charset=&quot;utf-8&quot;&gt;&lt;!--[if&nbsp;IE]&gt;&lt;meta&nbsp;http-equiv=&quot;X-UA-Compatible&quot;&nbsp;content=&quot;IE=edge&quot;&gt;&lt;![endif]--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;meta&nbsp;http-equiv=&quot;X-UA-Compatible&quot;&nbsp;content=&quot;IE=edge&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;meta&nbsp;name=&quot;viewport&quot;&nbsp;content=&quot;width=device-width,&nbsp;initial-scale=1.0,&nbsp;maximum-scale=1.0,&nbsp;user-scalable=0&quot;&gt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;title&gt;Folia&nbsp;landing&nbsp;page&nbsp;-&nbsp;SHARED&nbsp;ON&nbsp;THEMELOCK.COM&lt;/title&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;meta&nbsp;name=&quot;description&quot;&nbsp;content=&quot;Eventix&nbsp;landing&nbsp;page&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;meta&nbsp;name=&quot;keywords&quot;&nbsp;content=&quot;Eventix&nbsp;landing&nbsp;page&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;shortcut&nbsp;icon&quot;&nbsp;href=&quot;assets/img/favicon.ico&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--&nbsp;pixeden&nbsp;icon&nbsp;fonts&nbsp;--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;href=&quot;css/pe-media-icons/css/pe-media-icons.css&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;href=&quot;css/pe-media-icons/css/helper.css&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;href=&quot;css/bootstrap.min.css&quot;&nbsp;type=&quot;text/css&quot;&nbsp;media=&quot;all&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;href=&quot;http://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css&quot;&nbsp;rel=&quot;stylesheet&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;href=&quot;css/magnific-popup.css&quot;&nbsp;type=&quot;text/css&quot;&nbsp;media=&quot;all&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;href=&quot;css/owl.carousel.css&quot;&nbsp;type=&quot;text/css&quot;&nbsp;media=&quot;all&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;href=&quot;css/owl.theme.css&quot;&nbsp;type=&quot;text/css&quot;&nbsp;media=&quot;all&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;href=&quot;css/style.css&quot;&nbsp;type=&quot;text/css&quot;&nbsp;media=&quot;all&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--&nbsp;Skins&nbsp;/&nbsp;Colors&nbsp;--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;link&nbsp;rel=&quot;stylesheet&quot;&nbsp;id=&quot;css-color&quot;&nbsp;href=&quot;css/skins/orange.css&quot;/&gt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--&nbsp;HTML5&nbsp;Shim&nbsp;and&nbsp;Respond.js&nbsp;IE8&nbsp;support&nbsp;of&nbsp;HTML5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elements&nbsp;and&nbsp;media&nbsp;queries&nbsp;--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--&nbsp;WARNING:&nbsp;Respond.js&nbsp;doesn&#39;t&nbsp;work&nbsp;if&nbsp;you&nbsp;view&nbsp;the&nbsp;page&nbsp;via&nbsp;file://&nbsp;--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--[if&nbsp;lt&nbsp;IE&nbsp;9]&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;![endif]--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--[if&nbsp;gte&nbsp;IE&nbsp;9]&gt;
+&nbsp;&lt;style&nbsp;type=&quot;text/css&quot;&gt;
+&nbsp;&nbsp;&nbsp;.gradient&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;filter:&nbsp;none;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&lt;/style&gt;
+&lt;![endif]--&gt;
+
+&lt;/head&gt;
+
+&lt;body&nbsp;id=&quot;landing-page&quot;&gt;
+
+&lt;div&nbsp;id=&quot;fb-root&quot;&gt;&lt;/div&gt;
+&lt;script&gt;(function(d,&nbsp;s,&nbsp;id)&nbsp;{
+&nbsp;var&nbsp;js,&nbsp;fjs&nbsp;=&nbsp;d.getElementsByTagName(s)[0];
+&nbsp;if&nbsp;(d.getElementById(id))&nbsp;return;
+&nbsp;js&nbsp;=&nbsp;d.createElement(s);&nbsp;js.id&nbsp;=&nbsp;id;
+&nbsp;js.src&nbsp;=&nbsp;&quot;//connect.facebook.net/en_US/sdk.js#xfbml=1&amp;appId=186374868104540&amp;version=v2.0&quot;;
+&nbsp;fjs.parentNode.insertBefore(js,&nbsp;fjs);
+}(document,&nbsp;&#39;script&#39;,&nbsp;&#39;facebook-jssdk&#39;));&lt;/script&gt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;header&nbsp;id=&quot;layout2-header&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;nav&nbsp;class=&quot;navbar&nbsp;main-navigation-header&nbsp;top-nav&nbsp;navbar-fixed-top&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--&nbsp;Brand&nbsp;and&nbsp;toggle&nbsp;get&nbsp;grouped&nbsp;for&nbsp;better&nbsp;mobile&nbsp;display&nbsp;--&gt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;button&nbsp;type=&quot;button&quot;&nbsp;data-toggle=&quot;collapse&quot;&nbsp;data-target=&quot;#header-navigation&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;span&gt;Toggle&nbsp;navigation&lt;/span&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;span&gt;&lt;/span&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;span&gt;&lt;/span&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;span&gt;&lt;/span&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/button&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&nbsp;class=&quot;navbar-brand&nbsp;logo&quot;&gt;&lt;img&nbsp;src=&quot;img/layout2-logo.png&quot;&nbsp;alt=&quot;&quot;&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;&lt;!--&nbsp;Collect&nbsp;the&nbsp;nav&nbsp;links,&nbsp;forms,&nbsp;and&nbsp;other&nbsp;content&nbsp;for&nbsp;toggling&nbsp;--&gt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;collapse&nbsp;navbar-collapse&quot;&nbsp;id=&quot;header-navigation&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;socials&nbsp;pull-right&quot;&gt;
+&lt;a&nbsp;href=&quot;https://twitter.com/share&quot;&gt;Tweet&lt;/a&gt;
+&lt;div&nbsp;data-href=&quot;https://www.facebook.com/PromailThemes&quot;&nbsp;data-layout=&quot;button_count&quot;&nbsp;data-action=&quot;like&quot;&nbsp;data-show-faces=&quot;false&quot;&nbsp;data-share=&quot;false&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;ul&nbsp;class=&quot;nav&nbsp;navbar-nav&nbsp;main-navigation&nbsp;navbar-right&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;#page-top&quot;&gt;&lt;/a&gt;&lt;/li&gt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;#main-section&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;#about&quot;&gt;About&nbsp;us&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;#features&quot;&gt;Features&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;#extras&quot;&gt;Extras&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;#testimonials&quot;&gt;Testimonials&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;#contact-popup&quot;&gt;Contact&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;&lt;!--&nbsp;/.navbar-collapse&nbsp;--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;&lt;!--&nbsp;/.container-fluid&nbsp;--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/nav&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/header&gt;&lt;!--&nbsp;Navigation&nbsp;--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;section&nbsp;id=&quot;layout2-main-section&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;h1&gt;App&nbsp;should&nbsp;be&nbsp;well&nbsp;presented&lt;/h1&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;subscribe&nbsp;to&nbsp;get&nbsp;notified&nbsp;of&nbsp;our&nbsp;great&nbsp;launch&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;button-wrapper&nbsp;center-block&nbsp;clearfix&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&nbsp;class=&quot;demo-btn&nbsp;pull-left&quot;&gt;View&nbsp;Demo&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&nbsp;class=&quot;buy-btn&nbsp;pull-right&quot;&gt;Buy&nbsp;now&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;img&nbsp;src=&quot;img/layout2-macbook.png&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/section&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;section&nbsp;id=&quot;layout2-about&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-md-8&nbsp;col-md-offset-2&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h2&gt;5000&nbsp;Downloads&nbsp;will&nbsp;mean&nbsp;something&lt;/h2&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;hr&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&nbsp;bibendum&nbsp;in&nbsp;congue&nbsp;eget&nbsp;vel&nbsp;dolor&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&nbsp;bibendum&nbsp;in&nbsp;congue&nbsp;eget&nbsp;vel&nbsp;dolo.&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/section&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;section&nbsp;id=&quot;layout2-extras&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-md-3&nbsp;img-wrapper&nbsp;text-right&quot;&gt;
+&lt;div&nbsp;class=&quot;text-container&nbsp;first&quot;&gt;
+&lt;h3&gt;Awesome&nbsp;Features&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;elit&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;consequat&nbsp;ex&nbsp;dum&nbsp;in&nbsp;congue&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div&nbsp;class=&quot;text-container&nbsp;second&quot;&gt;
+&lt;h3&gt;Builder&nbsp;included&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;elit&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;consequat&nbsp;ex&nbsp;dum&nbsp;in&nbsp;congue&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;img&nbsp;src=&quot;img/layout2-devices.png&quot;&nbsp;class=&quot;img-responsive&nbsp;center-block&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&lt;div&nbsp;class=&quot;col-md-3&nbsp;text-left&quot;&gt;
+&lt;div&nbsp;class=&quot;text-container&nbsp;first&quot;&gt;
+&lt;h3&gt;Responsive&nbsp;layout&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;elit&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;consequat&nbsp;ex&nbsp;dum&nbsp;in&nbsp;congue&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div&nbsp;class=&quot;text-container&nbsp;second&quot;&gt;
+&lt;h3&gt;PSD&nbsp;included&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;elit&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;consequat&nbsp;ex&nbsp;dum&nbsp;in&nbsp;congue&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/section&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;section&nbsp;id=&quot;layout2-features&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h2&gt;Our&nbsp;most&nbsp;used&nbsp;features&lt;/h2&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;hr&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-4&nbsp;feature-item&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;&lt;i&nbsp;class=&quot;pe-mi-call-2&nbsp;pe-border&quot;&gt;&lt;/i&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h3&gt;Awesome&nbsp;Features&lt;/h3&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consecte&nbsp;turadipiscing&nbsp;elit&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-4&nbsp;feature-item&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;&lt;i&nbsp;class=&quot;pe-mi-add-folder&nbsp;pe-border&quot;&gt;&lt;/i&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h3&gt;6&nbsp;layouts&nbsp;included&lt;/h3&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consecte&nbsp;turadipiscing&nbsp;elit&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-4&nbsp;feature-item&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;&lt;i&nbsp;class=&quot;pe-mi-antenna&nbsp;pe-border&quot;&gt;&lt;/i&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h3&gt;Ready&nbsp;to&nbsp;use&lt;/h3&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consecte&nbsp;turadipiscing&nbsp;elit&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-4&nbsp;feature-item&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;&lt;i&nbsp;class=&quot;pe-mi-bookmark-file&nbsp;pe-border&quot;&gt;&lt;/i&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h3&gt;Features&nbsp;Template&lt;/h3&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consecte&nbsp;turadipiscing&nbsp;elit&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-4&nbsp;feature-item&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;&lt;i&nbsp;class=&quot;pe-mi-bar-chart&nbsp;pe-border&quot;&gt;&lt;/i&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h3&gt;Statistics&nbsp;and&nbsp;Data&lt;/h3&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consecte&nbsp;turadipiscing&nbsp;elit&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-4&nbsp;feature-item&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;&lt;i&nbsp;class=&quot;pe-mi-bubble-chat-1&nbsp;pe-border&quot;&gt;&lt;/i&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;h3&gt;Messages&nbsp;and&nbsp;sms&lt;/h3&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consecte&nbsp;turadipiscing&nbsp;elit&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/section&gt;
+
+
+&lt;section&nbsp;id=&quot;layout2-extra-section&quot;&gt;
+
+&lt;div&gt;&lt;/div&gt;
+
+&lt;img&nbsp;src=&quot;img/layout2-side-devices.png&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;
+
+&lt;div&gt;
+&lt;div&gt;
+&lt;div&gt;
+
+&lt;h2&gt;Amazignly&nbsp;designed&nbsp;page&lt;/h2&gt;
+&lt;p&gt;Just&nbsp;o&nbsp;make&nbsp;your&nbsp;brand&nbsp;with&nbsp;he&nbsp;latest&nbsp;trends&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-calendar&quot;&gt;&lt;/i&gt;Updated&nbsp;in&nbsp;a&nbsp;range&nbsp;of&nbsp;7&nbsp;days&lt;/li&gt;
+&lt;li&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-laptop&quot;&gt;&lt;/i&gt;Mobiles&nbsp;friendly&nbsp;interfaces&lt;/li&gt;
+&lt;li&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-heart-o&quot;&gt;&lt;/i&gt;Lovely&nbsp;designed&nbsp;for&nbsp;you&lt;/li&gt;
+&lt;li&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-file-text&quot;&gt;&lt;/i&gt;PSD&nbsp;files&nbsp;included&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/section&gt;
+
+
+&lt;section&nbsp;id=&quot;layout2-tree-columns&quot;&gt;
+
+&lt;div&gt;
+
+&lt;h2&gt;Our&nbsp;most&nbsp;used&nbsp;extras&lt;/h2&gt;
+&lt;hr&gt;
+
+&lt;div&gt;
+&lt;div&nbsp;class=&quot;col-sm-4&nbsp;column&quot;&gt;
+&lt;h3&gt;Responsive&nbsp;layout&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&nbsp;class=&quot;col-sm-4&nbsp;column&quot;&gt;
+&lt;h3&gt;W3C&nbsp;Valid&nbsp;documents&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&nbsp;class=&quot;col-sm-4&nbsp;column&quot;&gt;
+&lt;h3&gt;Online&nbsp;Builder&nbsp;/&nbsp;Editor&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+
+&lt;section&nbsp;id=&quot;layout2-z-layout1&quot;&gt;
+&lt;div&gt;
+&lt;div&gt;
+
+&lt;div&nbsp;class=&quot;col-lg-7&nbsp;col-sm-6&quot;&gt;
+&lt;img&nbsp;src=&quot;img/layout2-iphone.png&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;
+&lt;/div&gt;
+
+&lt;div&nbsp;class=&quot;col-lg-5&nbsp;col-sm-6&nbsp;text-wrapper&quot;&gt;
+
+&lt;h2&gt;Ultimate&nbsp;landing&nbsp;pages&nbsp;must-have&nbsp;pack&lt;/h2&gt;
+
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&nbsp;bibendum&nbsp;in&nbsp;congue&nbsp;eget&nbsp;vel&nbsp;dolor.&nbsp;&nbsp;&lt;/p&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+
+&lt;section&nbsp;id=&quot;layout2-pricing-tables&quot;&gt;
+
+&lt;div&gt;
+
+&lt;h2&gt;Our&nbsp;amazign&nbsp;plans&lt;/h2&gt;
+&lt;hr&gt;
+&lt;p&nbsp;class=&quot;main-text&nbsp;center-block&quot;&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&lt;/p&gt;
+
+&lt;div&gt;
+&lt;div&nbsp;class=&quot;col-sm-3&nbsp;table-options&quot;&gt;
+&lt;h3&gt;Starter&lt;/h3&gt;
+&lt;p&gt;&lt;sup&gt;$&lt;/sup&gt;9&lt;sup&gt;/&nbsp;mo&lt;/sup&gt;&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-user&quot;&gt;&lt;/i&gt;&nbsp;Up&nbsp;to&nbsp;5&nbsp;users&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-list-ul&quot;&gt;&lt;/i&gt;&nbsp;300&nbsp;GB&nbsp;Bandwith&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-pencil&quot;&gt;&lt;/i&gt;&nbsp;PSD&nbsp;included&lt;/p&gt;
+&lt;a&nbsp;href=&quot;&quot;&gt;Apply&nbsp;now&lt;/a&gt;
+&lt;span&gt;30&nbsp;day&nbsp;free&nbsp;trial&nbsp;included&lt;/span&gt;
+&lt;/div&gt;
+&lt;div&nbsp;class=&quot;col-sm-3&nbsp;table-options&nbsp;hovered&quot;&gt;
+&lt;h3&gt;Basic&lt;/h3&gt;
+&lt;p&gt;&lt;sup&gt;$&lt;/sup&gt;19&lt;sup&gt;/&nbsp;mo&lt;/sup&gt;&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-user&quot;&gt;&lt;/i&gt;&nbsp;Up&nbsp;to&nbsp;5&nbsp;users&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-list-ul&quot;&gt;&lt;/i&gt;&nbsp;300&nbsp;GB&nbsp;Bandwith&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-pencil&quot;&gt;&lt;/i&gt;&nbsp;PSD&nbsp;included&lt;/p&gt;
+&lt;a&nbsp;href=&quot;&quot;&gt;Apply&nbsp;now&lt;/a&gt;
+&lt;span&gt;30&nbsp;day&nbsp;free&nbsp;trial&nbsp;included&lt;/span&gt;
+&lt;/div&gt;
+&lt;div&nbsp;class=&quot;col-sm-3&nbsp;table-options&quot;&gt;
+&lt;h3&gt;Pro&lt;/h3&gt;
+&lt;p&gt;&lt;sup&gt;$&lt;/sup&gt;29&lt;sup&gt;/&nbsp;mo&lt;/sup&gt;&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-user&quot;&gt;&lt;/i&gt;&nbsp;Up&nbsp;to&nbsp;5&nbsp;users&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-list-ul&quot;&gt;&lt;/i&gt;&nbsp;300&nbsp;GB&nbsp;Bandwith&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-pencil&quot;&gt;&lt;/i&gt;&nbsp;PSD&nbsp;included&lt;/p&gt;
+&lt;a&nbsp;href=&quot;&quot;&gt;Apply&nbsp;now&lt;/a&gt;
+&lt;span&gt;30&nbsp;day&nbsp;free&nbsp;trial&nbsp;included&lt;/span&gt;
+&lt;/div&gt;
+&lt;div&nbsp;class=&quot;col-sm-3&nbsp;table-options&quot;&gt;
+&lt;h3&gt;Agency&lt;/h3&gt;
+&lt;p&nbsp;class=&quot;price&nbsp;custom-price&quot;&gt;*&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-user&quot;&gt;&lt;/i&gt;&nbsp;Up&nbsp;to&nbsp;5&nbsp;users&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-list-ul&quot;&gt;&lt;/i&gt;&nbsp;300&nbsp;GB&nbsp;Bandwith&lt;/p&gt;
+&lt;p&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-pencil&quot;&gt;&lt;/i&gt;&nbsp;PSD&nbsp;included&lt;/p&gt;
+&lt;a&nbsp;href=&quot;&quot;&nbsp;class=&quot;button&nbsp;green-btn&quot;&gt;Get&nbsp;a&nbsp;quote&lt;/a&gt;
+&lt;span&gt;30&nbsp;day&nbsp;free&nbsp;trial&nbsp;included&lt;/span&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+
+&lt;div&nbsp;id=&quot;layout2-testimonials&quot;&gt;
+
+&lt;div&gt;
+
+&lt;h2&gt;What&nbsp;they&nbsp;say&lt;/h2&gt;
+&lt;hr&gt;
+
+&lt;div&gt;
+
+&lt;div&gt;
+
+&lt;ul&nbsp;id=&quot;testi-slider&quot;&gt;
+
+&lt;li&gt;
+&lt;p&gt;“&nbsp;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;conseq&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;diambibendu&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;diam&nbsp;bibendum&nbsp;in&nbsp;congueeget&nbsp;vel&nbsp;dolor&nbsp;&nbsp;”&lt;/p&gt;
+&lt;div&nbsp;class=&quot;profile-info&nbsp;block-center&quot;&gt;
+&lt;a&nbsp;href=&quot;&quot;&gt;&lt;img&nbsp;src=&quot;img/layout2-testi-img1.png&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;&lt;/a&gt;
+&lt;span&gt;Joe&nbsp;doe&nbsp;&nbsp;&amp;nbsp;-&amp;nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;Envato.com&lt;/a&gt;&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;/li&gt;
+
+&lt;li&gt;
+&lt;p&gt;“&nbsp;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;conseq&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;diambibendu&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;diam&nbsp;bibendum&nbsp;in&nbsp;congue&nbsp;eget&nbsp;vel&nbsp;dolor&nbsp;&nbsp;”&lt;/p&gt;
+&lt;div&nbsp;class=&quot;profile-info&nbsp;block-center&quot;&gt;
+&lt;a&nbsp;href=&quot;&quot;&gt;&lt;img&nbsp;src=&quot;img/layout2-testi-img1.png&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;&lt;/a&gt;
+&lt;span&gt;Joe&nbsp;doe&nbsp;&nbsp;&amp;nbsp;-&amp;nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;Envato.com&lt;/a&gt;&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;/li&gt;
+
+&lt;li&gt;
+&lt;p&gt;“&nbsp;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;parame&nbsp;soteger&nbsp;conseq&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;diambibendu&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;diam&nbsp;bibendum&nbsp;in&nbsp;congue&nbsp;eget&nbsp;vel&nbsp;dolor&nbsp;&nbsp;”&lt;/p&gt;
+&lt;div&nbsp;class=&quot;profile-info&nbsp;block-center&quot;&gt;
+&lt;a&nbsp;href=&quot;&quot;&gt;&lt;img&nbsp;src=&quot;img/layout2-testi-img1.png&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;&lt;/a&gt;
+&lt;span&gt;Joe&nbsp;doe&nbsp;&nbsp;&amp;nbsp;-&amp;nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&gt;Envato.com&lt;/a&gt;&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;/li&gt;
+
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+
+&lt;section&nbsp;id=&quot;layout2-faqs&quot;&gt;
+
+&lt;div&gt;
+
+&lt;h2&gt;Frequented&nbsp;asked&nbsp;questions&lt;/h2&gt;
+&lt;hr&gt;
+
+&lt;div&gt;
+&lt;div&nbsp;class=&quot;col-sm-4&nbsp;column&quot;&gt;
+&lt;h3&gt;Support&nbsp;is&nbsp;online&nbsp;?&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&nbsp;class=&quot;col-sm-4&nbsp;column&quot;&gt;
+&lt;h3&gt;Use&nbsp;it&nbsp;for&nbsp;comercial&nbsp;use&nbsp;?&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&nbsp;class=&quot;col-sm-4&nbsp;column&quot;&gt;
+&lt;h3&gt;How&nbsp;to&nbsp;buy&nbsp;this&nbsp;template&nbsp;?&lt;/h3&gt;
+&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesoteger&nbsp;consequat&nbsp;ex&nbsp;sitvalor&nbsp;amet&nbsp;mattis&nbsp;etiam&nbsp;in&nbsp;dui&nbsp;diam&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/section&gt;
+
+
+&lt;section&nbsp;id=&quot;layout2-cta-section&quot;&gt;
+
+&lt;img&nbsp;src=&quot;img/layout2-cta-devices.png&quot;&nbsp;alt=&quot;&quot;&nbsp;/&gt;
+
+&lt;div&gt;
+&lt;div&gt;
+&lt;div&gt;
+
+&lt;h2&gt;Don’t&nbsp;waste&nbsp;your&nbsp;time&lt;/h2&gt;
+&lt;p&gt;subscribe&nbsp;to&nbsp;get&nbsp;notified&nbsp;of&nbsp;our&nbsp;great&nbsp;launch&lt;/p&gt;
+&lt;div&nbsp;class=&quot;button-wrapper&nbsp;clearfix&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&nbsp;class=&quot;demo-btn&nbsp;pull-left&quot;&gt;View&nbsp;Demo&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&nbsp;class=&quot;buy-btn&nbsp;pull-right&quot;&gt;Buy&nbsp;now&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/section&gt;
+
+
+&lt;section&nbsp;id=&quot;layout2-prefooter&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-md-4&nbsp;col-sm-12&nbsp;about&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;instasent&quot;&gt;&lt;img&nbsp;src=&quot;img/layout2-logo2.png&quot;&nbsp;alt=&quot;logo&quot;&nbsp;/&gt;&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Lorem&nbsp;ipsum&nbsp;dolor&nbsp;sit&nbsp;amet&nbsp;consectetur&nbsp;adipiscing&nbsp;elit&nbsp;un&nbsp;paramesot&nbsp;&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;facebook&quot;&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-facebook&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;twitter&quot;&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-twitter&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;google&nbsp;plus&quot;&gt;&lt;i&nbsp;class=&quot;fa&nbsp;fa-google-plus&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-md-2&nbsp;col-sm-4&nbsp;col-xs-6&nbsp;col-md-offset-2&nbsp;col-sm-offset-0&nbsp;features&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;h4&gt;Partners&lt;/h4&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;sms&quot;&gt;Envato.com&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;distributors&quot;&gt;Gxthemes.com&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-md-2&nbsp;col-sm-4&nbsp;col-xs-6&nbsp;company&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;h4&gt;Company&lt;/h4&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;about&nbsp;us&quot;&gt;About&nbsp;us&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;contact&quot;&gt;Features&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;resources&quot;&gt;Resources&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-md-2&nbsp;col-sm-4&nbsp;col-xs-6&nbsp;company&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;i&nbsp;class=&quot;fa&nbsp;fa-envelope-o&quot;&gt;&lt;/i&gt;&lt;a&nbsp;href=&quot;&quot;&gt;Get&nbsp;in&nbsp;touch&lt;/a&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&lt;/section&gt;
+
+
+&lt;footer&nbsp;id=&quot;layout2-footer&quot;&gt;
+&lt;div&gt;
+&lt;div&nbsp;class=&quot;row&nbsp;bottom-footer&quot;&gt;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-6&nbsp;col-xs-12&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;Copyright&nbsp;©&nbsp;2015&nbsp;Gxthemes.com.&nbsp;All&nbsp;rights&nbsp;are&nbsp;reserved&lt;/p&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div&nbsp;class=&quot;col-sm-6&nbsp;col-xs-12&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;terms&nbsp;and&nbsp;conditions&quot;&gt;Privacy&nbsp;and&nbsp;conditions&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;&lt;a&nbsp;href=&quot;&quot;&nbsp;title=&quot;privacy&quot;&gt;Terms&nbsp;of&nbsp;use&lt;/a&gt;&lt;/li&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/ul&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&lt;/div&gt;
+&lt;/footer&gt;
+
+
+&lt;div&nbsp;id=&quot;contact-popup&quot;&gt;
+
+&lt;form&nbsp;action=&quot;#&quot;&gt;
+&lt;a&nbsp;href=&quot;&quot;&gt;X&lt;/a&gt;
+&lt;h2&gt;Drop&nbsp;us&nbsp;your&nbsp;message&lt;/h2&gt;
+&lt;input&nbsp;type=&quot;text&quot;&nbsp;placeholder=&quot;Your&nbsp;name&quot;&gt;
+&lt;input&nbsp;type=&quot;email&quot;&nbsp;placeholder=&quot;Email&nbsp;Adress&quot;&gt;
+&lt;textarea&nbsp;placeholder=&quot;Your&nbsp;Message&quot;&gt;&lt;/textarea&gt;
+&lt;div&nbsp;class=&quot;holder&nbsp;clearfix&quot;&gt;
+&lt;button&nbsp;type=&quot;submit&quot;&nbsp;class=&quot;submit-btn&nbsp;pull-right&quot;&gt;Submit&nbsp;&lt;i&nbsp;class=&quot;fa&nbsp;fa-envelope-o&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;/form&gt;
+
+&lt;/div&gt;
+
+&lt;script&nbsp;src=&quot;js/jquery-2.1.0.min.js&quot;&nbsp;type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/bootstrap.min.js&quot;&nbsp;type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/bootstrap-select.min.js&quot;&nbsp;type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/jquery.magnific-popup.min.js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/wow.min.js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/jquery.nav.js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/jquery.scrollto.min.js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/jquery.easing.min.js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/jquery.parallax-1.1.3.js&quot;&nbsp;type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/owl.carousel.min.js&quot;&nbsp;type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;https://maps.googleapis.com/maps/api/js&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/google-maps.js&quot;&nbsp;type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;src=&quot;js/main.js&quot;&nbsp;type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;script&nbsp;type=&quot;text/javascript&quot;&gt;
+window.twttr=(function(d,s,id){var&nbsp;t,js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return}js=d.createElement(s);js.id=id;js.src=&quot;https://platform.twitter.com/widgets.js&quot;;fjs.parentNode.insertBefore(js,fjs);return&nbsp;window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,&quot;script&quot;,&quot;twitter-wjs&quot;));
+&lt;/script&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;
+&lt;/body&gt;
+&lt;/html&gt;</pre><p><br/></p>
+      </article>
+      <section class="comments-block">
+        <h3 class="comments-head">4 Comments</h3>
+        <div class="media"> <a class="pull-left" href="#"> <img class="media-object" alt="avatar" src="images/avatar-1.jpg"> </a>
+          <div class="media-body">
+            <h6 class="media-heading">James Norton</h6>
+            <p class="text-muted">Aug 10, 2014 at 10:20 am</p>
+            Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin commodo. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus. </div>
+        </div>
+        <div class="media"> <a class="pull-left" href="#"> <img class="media-object" alt="avatar" src="images/avatar-2.jpg"> </a>
+          <div class="media-body">
+            <h6 class="media-heading">Mark Johns</h6>
+            <p class="text-muted">Aug 10, 2014 at 10:20 am</p>
+            Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin commodo. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus.
+            <div class="media"> <a class="pull-left" href="#"> <img class="media-object" alt="avatar" src="images/avatar-1.jpg"> </a>
+              <div class="media-body">
+                <h6 class="media-heading">John Doe</h6>
+                <p class="text-muted">Aug 10, 2014 at 10:20 am</p>
+                Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin commodo. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus. </div>
+            </div>
+          </div>
+        </div>
+        <div class="media"> <a class="pull-left" href="#"> <img class="media-object" alt="avatar" src="images/avatar-1.jpg"> </a>
+          <div class="media-body">
+            <h6 class="media-heading">James Norton</h6>
+            <p class="text-muted">Aug 10, 2014 at 10:20 am</p>
+            Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin commodo. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus. </div>
+        </div>
+      </section>
+      <section class="post-comment-form">
+        <h3 class="comments-head">Add your comment</h3>
+        <form class="form" role="form">
+          <div class="row">
+            <div class="form-group col-md-4 col-sm-4">
+              <input type="text" class="form-control input-lg" placeholder="Your name">
+            </div>
+            <div class="form-group col-md-4 col-sm-4">
+              <input type="email" class="form-control input-lg" placeholder="Your email">
+            </div>
+            <div class="form-group col-md-4 col-sm-4">
+              <input type="url" class="form-control input-lg" placeholder="Website (optional)">
+            </div>
+          </div>
+          <div class="row">
+            <div class="form-group col-md-12">
+              <textarea cols="8" rows="4" class="form-control input-lg" placeholder="Your comment"></textarea>
+            </div>
+          </div>
+          <div class="row">
+            <div class="form-group col-md-12">
+              <button type="submit" class="btn btn-primary btn-lg">Submit your comment</button>
+            </div>
+          </div>
+        </form>
+      </section>
+    </div>
+    <!--// col md 9--> 
+    
+    <!--Blog Sidebar-->
+    <div class="col-md-3">
+      <div class="blog-search has-margin-bottom">
+        <div class="input-group input-group-lg">
+          <input type="text" class="form-control" placeholder="Search..">
+          <span class="input-group-btn">
+          <button class="btn btn-default" type="button"><i class="glyphicon glyphicon-search glyphicon-lg"></i></button>
+          </span> </div>
+      </div>
+      <div class="well">
+        <h4>About</h4>
+        <p>Etiam porta <em>sem malesuada magna</em> mollis euismod. Cras mattis consectetur purus sit amet fermentum. Aenean lacinia bibendum nulla sed consectetur.</p>
+      </div>
+      <div class="vertical-links has-margin-bottom">
+        <h6>Blog archives</h6>
+        <ul class="list-unstyled">
+          <li><a href="#">March 2014 <span class="badge pull-right">23</span> </a></li>
+          <li><a href="#">February 2014 <span class="badge pull-right">17</span> </a></li>
+          <li><a href="#">January 2014 <span class="badge pull-right">34</span> </a></li>
+          <li><a href="#">December 2013 <span class="badge pull-right">28</span> </a></li>
+          <li><a href="#">November 2013 <span class="badge pull-right">12</span> </a></li>
+          <li><a href="#">October 2013 <span class="badge pull-right">28</span> </a></li>
+        </ul>
+      </div>
+      <div class="tag-cloud has-margin-bottom"> <a href="#">startup</a> <a href="#">landing</a> <a href="#">template</a> <a href="#">website</a> <a href="#">web app</a> <a href="#">mobile</a> <a href="#">coming soon</a> <a href="#">template</a> <a href="#">website/a> <a href="#">launch</a> <a href="#">subscribe</a> <a href="#">signup</a> <a href="blog.html">Blog</a> </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+
+<!-- Container -->
+<div class="container">
+  <section class="row breath">
+    <div class="col-md-12 footerlinks"> <a href="#">About</a> <a href="#">Pricing</a> <a href="blog.html">Blog</a> <a href="#">Help</a> <a href="#">Contact</a> <a href="#">Privacy</a> <a href="#">Terms</a>
+      <p>&copy; 2014 Startup. All Rights Reserved</p>
+    </div>
+  </section>
+  <!-- // End Client Logos --> 
+  
+</div>
+<!-- // Container Ends --> 
+<!-- END FOOTER --> 
+
+<!-- JS and analytics only. --> 
+<!-- Bootstrap core JavaScript
+================================================== --> 
+<!-- Placed at the end of the document so the pages load faster --> 
+<script src="js/jquery.js"></script> 
+<script src="js/bootstrap.js"></script> 
+<script src="js/easing.js"></script> 
+<script src="js/nicescroll.js"></script> 
+
+
+</body>
+</html>

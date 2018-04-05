@@ -1,0 +1,87 @@
+/**
+ * @version         2015-10-23 PPPFCMSv1.0.0
+ * @author           appleÉ­Âí
+ * @copyright      Copyright (c) 2015 - 2020, PPPF.
+ * @homepage    http://www.pppftaobao.com
+ */
+ @CHARSEZT "UTF-8";
+ #reg{
+	 width:99.3%;
+	 height:300px;
+	 border:5px solid #9ca77f;
+	 border-radius:15px;
+	 margin-bottom:12px;
+	 background:#d9fbf2;
+ }
+ #reg h2{
+	 text-align:center;
+	 margin-top:30px;
+ }
+ #reg form{
+	 font-size:1.5em;
+	 margin-left:15%;
+	 margin-top:5%;
+	 text-align:left;
+ }
+ #reg form dt{
+	 font-size:1.2em;
+	 font-weight:bold;
+	 margin-bottom:40px;
+ }
+  #reg form dd{
+	  margin-top:15px;
+	 font-size:0.8em;
+	 
+ }
+ 
+   #reg form dd img{
+	 width:80px;
+	 height:80px;
+	 cursor:pointer;
+	
+ }
+ 
+	#reg dl dd input.text{
+		width:220px;
+		height:33px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#d9fbf2;	
+		margin-left:20px;
+		padding-left:20px;
+		cursor:crosshair;
+		font-size:15px;
+	}
+	#reg dl dd input.submit{
+		width:160px;
+		height:39px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#9ca77f;	
+		cursor:pointer;
+		font-size:21px;
+		margin:20px 0 0 180px;
+	}
+		#reg img.yzmimg{
+		position:relative;
+		top:11px;
+		width:120px;
+		height:40px;
+		font-size:55px;
+		}
+	#reg dl dd input.yzm{
+		width:60px;
+		height:39px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#d9fbf2;	
+		cursor:crosshair;
+		font-size:21px;
+	
+	}
+.yzmimg img{
+	 width:80px;
+	 height:20px;
+
+	
+ }

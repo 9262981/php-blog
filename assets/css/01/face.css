@@ -1,0 +1,27 @@
+@CHARSET "UTF-8";
+body{
+	width:auto;
+}
+#face{
+	text-align:center;
+	font-size:10px;
+}
+#face dl{
+margin-left:30px;
+	
+	
+	}
+#face dt{
+	float:left;
+	margin:0 auto;
+	display:inline-block;
+	}
+#face  img{
+	border:2px solid #77969a;
+	border-radius:5px;
+	width:65px;
+	height:65x;
+	margin-left:5px;
+	margin-top:5px;
+    cursor:pointer;
+}

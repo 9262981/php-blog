@@ -1,0 +1,59 @@
+<?php
+/**
+ * @version         2015-10-23 PPPFCMSv1.0.0
+ * @author           apple森马
+ * @copyright      Copyright (c) 2015 - 2020, PPPF.
+ * @homepage    http://www.pppftaobao.com
+ */
+header("Content-Type:text/html;charset=utf-8");
+
+//数据库连接
+	define('DB_HOST','localhost');	
+	define('DB_USER','root');
+	define('DB_PWD','root');
+	define('DB_NAME','ue');
+	
+//创建数据库连接
+	function _connect(){
+	global $_conn;//设置全局变量外部可以访问
+	if(!$_conn = mysql_connect(DB_HOST,DB_USER,DB_PWD)){
+		exit("数据库连接错误了，检查配置文件.错误信息1".mysql_error());
+		}
+	}
+	$a=mysql_query("SELECT	*
+				FROM	pppf
+				WHERE id=1");
+	echo $a;
+				
+
+	//初始化数据库
+	_connect();   	//链接MYSQL数据库
+	_select_db();	//选择指定的数据库
+	_set_names();	//设置字符集
+?>
+<!DOCTYPE HTML>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ueditor demo</title>
+</head>
+
+<body>
+	<form method="post" action="demo.php"> 
+    <!-- 加载编辑器的容器 -->
+    <script id="container" name="content" type="text/plain">
+        这里写你的初始化内容
+    </script>
+    <!-- 配置文件 -->
+    <script type="text/javascript" src="ueditor.config.js"></script>
+    <!-- 编辑器源码文件 -->
+    <script type="text/javascript" src="ueditor.all.js"></script>
+    <!-- 实例化编辑器 -->
+    <script type="text/javascript">
+        var ue = UE.getEditor('container');
+    </script>
+	</form>
+</body>
+
+</html>

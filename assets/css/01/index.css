@@ -1,0 +1,73 @@
+ .person{
+	 height:180px;
+	 width:370px;
+	 display:inline-block;
+	 }
+  .person .photo{
+	 height:150px;
+	 width:150px;
+	 float:left;
+	 margin-left:15px;
+	 }
+  .person .detail{
+	float:right;
+	 height:180px;
+	 width:180px;
+	 display:inline-block;
+ }
+ .person img{
+
+	 height:150px;
+	 width:150px;
+ }
+ .person a{
+	COLOR: #8c3893;
+	text-decoration: none; 
+	margin-left:12px;
+	margin-right:9px;
+	font-size:13px;
+
+
+ }
+  .person dl.xx{ float:left;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+	margin-bottom:5px;
+}
+  .person dl.cc{ float:right;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+	margin-bottom:5px;
+}
+  .person dl.vv{ float:left;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+}
+  .person dl.bb{ float:right;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+}
+  .person dl.nn{ 
+	padding-top:12px;
+	float:right;
+	width:135px;
+	text-align:right;
+	margin-right:1px;
+	margin-bottom:5px;
+}
+  .person dl.zz{ 
+	float:right;
+		margin-top:12px;
+	width:205px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+}

@@ -1,0 +1,80 @@
+/**
+ * @version         2015-10-23 PPPFCMSv1.0.0
+ * @author           apple森马
+ * @copyright      Copyright (c) 2015 - 2020, PPPF.
+ * @homepage    http://www.pppftaobao.com
+ */
+ @CHARSEZT "UTF-8";
+
+ #content .block{	 
+	 width:90%;
+	  display:block;
+	 margin:30px auto 0 auto;
+	 
+ }
+  #content a{	 
+	color:#8c3893;
+	text-decoration:none;
+ }
+ .person{
+	
+	 height:250px;
+	 width:180px;
+	display:inline-block;
+	 margin:0 15px 20px 10px;
+	 border:3px solid #9ca77f;
+	 border-radius:15px;
+	 
+ }
+ .person img{
+	 margin-left:15px;
+	 height:160px;
+	 width:150px;
+	 border-radius:10px;
+	 display:block;
+ }
+ .person a{
+	COLOR: #8c3893;
+	text-decoration: none; 
+	margin-left:12px;
+	margin-right:9px;
+	font-size:13px;
+
+ }
+  .person dl.xx{ float:left;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+	margin-bottom:5px;
+}
+  .person dl.cc{ float:left;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+	margin-bottom:5px;
+}
+  .person dl.vv{ float:left;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+}
+  .person dl.bb{ float:left;
+	width:65px;
+	border:2px solid #77969a;
+	border-radius:15px;
+	margin-left:12px;
+}
+  .person dl.nn{ float:left;
+	width:135px;
+	text-align:center;
+	margin-left:12px;
+	margin-bottom:5px;
+}
+ #blog h2{
+	 text-align:center;
+	 margin-top:30px;
+ }
+

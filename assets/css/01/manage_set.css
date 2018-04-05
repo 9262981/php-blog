@@ -1,0 +1,18 @@
+/**
+ * @version         2015-10-23 PPPFCMSv1.0.0
+ * @author           apple森马
+ * @copyright      Copyright (c) 2015 - 2020, PPPF.
+ * @homepage    http://www.pppftaobao.com
+ */
+ @CHARSEZT "UTF-8";
+ 
+.slider 	sidebar p input .submit{
+	width:160px;
+		height:39px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#9ca77f;	
+		cursor:pointer;
+		font-size:21px;
+		margin:0 0 0 180px;
+ }

@@ -1,0 +1,59 @@
+  #content #font{
+	 width:100px;
+	 height:85px;
+	 z-index:1;
+	 background:#fff;
+	 position:absolute;
+	 line-height:27px;
+	 margin-left:70px;
+	 margin-top:-10px;
+	 display:none;
+ }
+   #content #font strong{
+	 font-weight:normal;
+	 background:#fff;
+	 float:left;
+	 display:block;
+	 width:48px;
+	 border:1px solid #9ca77f;
+	 cursor:default;
+ }
+    #content #color {
+	 width:140px;
+	 height:85px;
+	 z-index:1;
+	 background:#eee;
+	 position:absolute;
+	 line-height:27px;
+	 margin-left:230px;
+	 margin-top:-10px;
+	 border:1px solid #9ca77f;
+	  display:none;
+ }
+   #content #color strong{
+	 width:12px;
+	 height:12px;
+
+	 float:left;
+	 display:block;
+
+	 border:1px solid #9ca77f;
+	 cursor:default;
+ }
+    #content #color strong em{
+	 display:block;
+	 border:1px solid #9ca77f;
+	 width:80%;
+	 clear:both;
+ }
+	#content #color strong input{
+	 width:136px;
+	 height:20px;
+	 cursor:pointer;
+	 
+ }
+	#q a{
+		text-decoration:none;
+		color:#333;
+	}
+	

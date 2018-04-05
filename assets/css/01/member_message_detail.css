@@ -1,0 +1,23 @@
+/**
+ * @version         2015-10-23 PPPFCMSv1.0.0
+ * @author           apple森马
+ * @copyright      Copyright (c) 2015 - 2020, PPPF.
+ * @homepage    http://www.pppftaobao.com
+ */
+ @CHARSEZT "UTF-8";
+ #list table{
+	 width:90%;
+	 margin:10px auto;
+	 text-align:center;
+	 background:#d9fbf2;
+ }
+ #list td{
+	height:25px;
+	line-height:25px;
+	 background:#d9fbf2;
+ }
+  #list th{
+	height:25px;
+	line-height:25px;
+	 background:#a8d8b9 ;
+ }

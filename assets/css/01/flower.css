@@ -1,0 +1,116 @@
+/**
+ * @version         2015-10-23 PPPFCMSv1.0.0
+ * @author           appleÉ­Âí
+ * @copyright      Copyright (c) 2015 - 2020, PPPF.
+ * @homepage    http://www.pppftaobao.com
+ */
+ @CHARSEZT "UTF-8";
+#blog{
+	 width:99.3%;
+
+	 border:5px solid #9ca77f;
+	 border-radius:15px;
+	 margin-bottom:12px;
+	 background:#d9fbf2;
+ }
+ #blog .content{	 
+	 width:95%;
+	  display:block;
+	 margin:20px auto 0 auto;
+ }
+ .person{
+	
+	 height:250px;
+	 width:180px;
+	display:inline-block;
+	 margin:0 15px 20px 10px;
+	 border:3px solid #9ca77f;
+	 border-radius:15px;
+	 
+ }
+ #message form{
+	 font-size:1.5em;
+	 margin-left:15%;
+	 margin-top:5%;
+	 text-align:left;
+ }
+ #message form dt{
+	 font-size:1.2em;
+	 font-weight:bold;
+	 margin-bottom:40px;
+ }
+  #message form dd{
+	  margin-top:15px;
+	 font-size:0.8em;
+	 
+ }
+ #message h4{
+	 text-align:center;
+	 margin-top:10px;
+ }
+#message dl dd input.text{
+		width:220px;
+		height:33px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#d9fbf2;	
+		margin-left:20px;
+		padding-left:20px;
+		cursor:crosshair;
+		font-size:15px;
+	}
+	.textarea{
+		width:220px;
+		height:150px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#d9fbf2;	
+		margin-left:20px;
+		padding-left:20px;
+		cursor:crosshair;
+		font-size:15px;
+	}
+	#message dl dd input.submit{
+		width:160px;
+		height:39px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#9ca77f;	
+		cursor:pointer;
+		font-size:21px;
+		margin:20px 0 0 180px;
+	}
+		#message img.yzmimg{
+		position:relative;
+		top:11px;
+		width:120px;
+		height:40px;
+		font-size:55px;
+		}
+	#message dl dd input.yzm{
+		width:60px;
+		height:39px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#d9fbf2;	
+		cursor:crosshair;
+		font-size:21px;
+	
+	}
+	#message dl dd select{
+		width:240px;
+		height:50px;
+		border:2px solid #9ca77f;
+		border-radius:15px;
+		background:#d9fbf2;	
+		margin-left:20px;
+		padding-left:20px;
+		cursor:crosshair;
+		font-size:15px;
+	}
+.yzmimg img{
+	 width:80px;
+	 height:20px;
+
+	
+ }
